@@ -1,0 +1,31 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: Minimal API server
+paths:
+  /:
+    get:
+      parameters:
+      - in: query
+        name: name
+        schema:
+          type: string
+        description: Name for display in response
+      responses:
+        '200':
+          description: Hello World Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hello'
+components:
+  schemas:
+    # base types
+    Hello:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: World
