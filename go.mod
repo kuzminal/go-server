@@ -2,8 +2,6 @@ module github.com/kuzminal/http-server-prod
 
 go 1.23.2
 
-replace internal/config => ./internal/config
-
 //replace pkg/api => ./pkg/api
 
 require (
