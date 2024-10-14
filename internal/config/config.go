@@ -1,66 +1,70 @@
 package config
 
 import (
+	"errors"
 	"fmt"
-	"os"
+	"log"
+	"path"
+	"path/filepath"
+	"strings"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
-	"gopkg.in/natefinch/lumberjack.v2"
-)
-
-var (
-	Params Config
-	Logger zerolog.Logger
 )
 
 type Config struct {
-	Host     string `yaml:"host"`
-	Port     string `yaml:"port"`
-	LogFile  string `yaml:"logFile"`
-	LogLevel int8   `yaml:"logLevel"`
+	Host string `yaml:"host"`
+	Port string `yaml:"port"`
 }
 
-func init() {
-	wd, err := os.Getwd()
-	if err != nil {
-		log.Info().Err(err)
-		wd = ""
-	}
+type ConfigPath struct {
+	FileName  string
+	Extention string
+	FilePath  string
+}
 
+func LoadConfig(confPath string) Config {
 	//default values
 	viper.SetDefault("port", "8888")
-	viper.SetDefault("logFile", "./log.log")
-	viper.SetDefault("logLevel", 1)
 
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
 	viper.AutomaticEnv()
-	viper.AddConfigPath(wd + "/configs")
 
-	if err := viper.ReadInConfig(); err != nil {
-		panic(fmt.Errorf("fatal error reading config: %w", err))
+	cp, err := parseConigPath(confPath)
+	if err == nil {
+		viper.SetConfigName(cp.FileName)
+		viper.SetConfigType(cp.Extention)
+		viper.AddConfigPath(cp.FilePath)
+		if err := viper.ReadInConfig(); err != nil {
+			panic(fmt.Errorf("fatal error reading config: %w", err))
+		}
 	}
-
-	errors := viper.Unmarshal(&Params)
+	var conf Config
+	errors := viper.Unmarshal(&conf)
 	if errors != nil {
-		log.Fatal().Err(errors)
+		log.Fatal(errors)
 	}
-	lumberjackLogger := &lumberjack.Logger{
-		Filename:   Params.LogFile,
-		MaxSize:    1,
-		MaxBackups: 3,
-		MaxAge:     28,
-		Compress:   true,
-	}
-
-	Logger = zerolog.New(lumberjackLogger).With().Timestamp().
-		Logger().Level(zerolog.Level(Params.LogLevel))
 
 	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
 		fmt.Println("Config file changed:", e.Name)
 	})
+	return conf
+}
+
+func parseConigPath(configPath string) (ConfigPath, error) {
+	if len(configPath) == 0 {
+		return ConfigPath{}, errors.New("empty config path")
+	}
+	cp := ConfigPath{}
+	var filePath, fileName string
+	filePath, fileName = path.Split(configPath)
+
+	cp.Extention = strings.Replace(path.Ext(configPath), ".", "", -1)
+	cp.FileName = strings.Replace(fileName, path.Ext(configPath), "", 1)
+	filePath, err := filepath.Abs(filePath)
+	if err != nil {
+		return ConfigPath{}, err
+	}
+	cp.FilePath = filePath
+	return cp, nil
 }

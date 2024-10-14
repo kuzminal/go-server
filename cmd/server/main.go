@@ -1,6 +1,9 @@
 package main
 
 import (
+	"flag"
+	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -10,10 +13,13 @@ import (
 	"github.com/kuzminal/http-server-prod/pkg/api"
 )
 
-var log = config.Logger
-
 func main() {
-	conf := config.Params
+	var confPath string
+	flag.StringVar(&confPath, "conf", "", "Path to config file")
+	flag.Parse()
+
+	conf := config.LoadConfig(confPath)
+
 	server := server.NewServer()
 
 	r := chi.NewRouter()
@@ -25,8 +31,8 @@ func main() {
 		Addr:    "0.0.0.0:" + conf.Port,
 	}
 
-	log.Info().Msgf("Starting server on %s port...", conf.Port)
+	slog.Info("Starting server...", "port", conf.Port)
 	if err := s.ListenAndServe(); err != nil {
-		log.Fatal().Err(err)
+		log.Fatal(err.Error())
 	}
 }
