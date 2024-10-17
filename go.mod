@@ -10,7 +10,6 @@ require (
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/spf13/viper v1.19.0
-	go.uber.org/zap v1.21.0
 )
 
 require (
